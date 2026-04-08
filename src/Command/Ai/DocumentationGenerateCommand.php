@@ -23,7 +23,6 @@ class DocumentationGenerateCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // Logique à venir
         return Command::SUCCESS;
     }
 }
