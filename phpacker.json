@@ -1,0 +1,6 @@
+{
+  "src": "./dist/swk.phar",
+  "dest": "./dist",
+  "platform": "all",
+  "php": "8.4.15"
+}

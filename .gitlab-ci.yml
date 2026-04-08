@@ -1,0 +1,100 @@
+spec:
+  inputs:
+    action:
+      description: "Action to execute"
+      type: string
+      default: "build-ci-image"
+      options:
+        - build-ci-image
+---
+
+stages:
+  - pre-build
+  - build
+  - release
+
+build-ci-image:
+  image: docker:27
+  stage: pre-build
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    CI_IMAGE_NAME: "$CI_REGISTRY_IMAGE/ci"
+    CI_IMAGE_TAG: "latest"
+  rules:
+    - if: '"$[[ inputs.action ]]" == "build-ci-image" && $CI_PIPELINE_SOURCE == "web"'
+      when: on_success
+    - when: never
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker build -t "$CI_IMAGE_NAME:$CI_IMAGE_TAG" docker
+    - docker push "$CI_IMAGE_NAME:$CI_IMAGE_TAG"
+
+build-app:
+  image: "$CI_REGISTRY_IMAGE/ci:latest"
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+  script:
+    - echo "$CI_COMMIT_TAG" > .app.version
+    - |
+      cat > .env << EOF
+      GITLAB_API_TOKEN="$SWEEECLI_GITLAB_API_TOKEN"
+      GITLAB_DEPLOY_TOKEN_USER="$SWEEECLI_GITLAB_DEPLOY_TOKEN_USER"
+      GITLAB_DEPLOY_TOKEN_PASSWORD="$SWEEECLI_GITLAB_DEPLOY_TOKEN_PASSWORD"
+      EOF
+    - composer install --no-dev --optimize-autoloader
+    - box compile
+    - phpacker build
+    - |
+      for platform in linux mac; do
+        for arch in arm x64; do
+          if [ -f "dist/$platform/$platform-$arch" ]; then
+            mkdir -p "dist/$platform-$arch"
+            mv "dist/$platform/$platform-$arch" "dist/$platform-$arch/swk"
+            tar -czf "dist/$platform-$arch.tar.gz" -C "dist/$platform-$arch" swk
+          fi
+        done
+      done
+  artifacts:
+    paths:
+      - dist/*.tar.gz
+      - dist/*.phar
+
+release-app:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+  before_script:
+    # On a besoin de curl pour envoyer les fichiers vers le Package Registry
+    - apk add --no-cache curl
+  script:
+    - echo "Uploading assets and creating release for $CI_COMMIT_TAG"
+    - |
+      for file in dist/*.tar.gz dist/*.phar; do
+        filename=$(basename "$file")
+        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+             --upload-file "$file" \
+             "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sweeecli/${CI_COMMIT_TAG}/${filename}"
+        curl --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+             --upload-file "$file" \
+             "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sweeecli/latest/${filename}"
+      done
+  release:
+    name: 'Release $CI_COMMIT_TAG'
+    description: 'Automatic release for version $CI_COMMIT_TAG'
+    tag_name: '$CI_COMMIT_TAG'
+    assets:
+      links:
+        - name: 'swk.phar'
+          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sweeecli/${CI_COMMIT_TAG}/swk.phar'
+        - name: 'linux-x64.tar.gz'
+          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sweeecli/${CI_COMMIT_TAG}/linux-x64.tar.gz'
+        - name: 'linux-arm.tar.gz'
+          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sweeecli/${CI_COMMIT_TAG}/linux-arm.tar.gz'
+        - name: 'mac-x64.tar.gz'
+          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sweeecli/${CI_COMMIT_TAG}/mac-x64.tar.gz'
+        - name: 'mac-arm.tar.gz'
+          url: '${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/sweeecli/${CI_COMMIT_TAG}/mac-arm.tar.gz'

@@ -1,0 +1,7 @@
+.idea
+vendor
+data
+.app.version
+dist
+.env
+.DS_Store

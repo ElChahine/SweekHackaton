@@ -1,0 +1,7 @@
+{
+  "output": "dist/swk.phar",
+  "files": [
+    ".app.version",
+    ".env"
+  ]
+}
