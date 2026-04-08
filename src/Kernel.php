@@ -30,6 +30,7 @@ use Walibuy\Sweeecli\Command\ReverseProxy\StopReverseProxyCommand;
 use Walibuy\Sweeecli\Command\ReverseProxy\UninstallReverseProxyCommand;
 use Walibuy\Sweeecli\Command\ReverseProxy\UpdateReverseProxyCommand;
 use Walibuy\Sweeecli\Command\Ai\CodeReviewCommand;
+use Walibuy\Sweeecli\Command\Ai\ClaudeTestCommand;
 use Walibuy\Sweeecli\Command\Ai\DocumentationGenerateCommand;
 use Walibuy\Sweeecli\Command\Ai\TestGenerateCommand;
 use Walibuy\Sweeecli\Core\AbstractKernel;
@@ -49,9 +50,7 @@ class Kernel extends AbstractKernel
         yield from $this->getGitCommands();
         yield new RetrieveDatabaseDumpCommand();
         yield from $this->getReverseProxyCommands();
-        yield new CodeReviewCommand($this->claudeClient);
-        yield new DocumentationGenerateCommand($this->claudeClient);
-        yield new TestGenerateCommand($this->claudeClient);
+        yield from $this->getAiCommands();
     }
 
     private function getCliCommands(): iterable
@@ -97,6 +96,7 @@ class Kernel extends AbstractKernel
     private function getAiCommands(): iterable
     {
         yield new CodeReviewCommand($this->claudeClient);
+        yield new ClaudeTestCommand();
         yield new DocumentationGenerateCommand($this->claudeClient);
         yield new TestGenerateCommand($this->claudeClient);
     }
