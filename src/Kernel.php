@@ -49,9 +49,9 @@ class Kernel extends AbstractKernel
         yield from $this->getGitCommands();
         yield new RetrieveDatabaseDumpCommand();
         yield from $this->getReverseProxyCommands();
-        yield new CodeReviewCommand();
-        yield new DocumentationGenerateCommand();
-        yield new TestGenerateCommand();
+        yield new CodeReviewCommand($this->claudeClient);
+        yield new DocumentationGenerateCommand($this->claudeClient);
+        yield new TestGenerateCommand($this->claudeClient);
     }
 
     private function getCliCommands(): iterable
@@ -96,8 +96,8 @@ class Kernel extends AbstractKernel
 
     private function getAiCommands(): iterable
     {
-        yield new CodeReviewCommand();
-        yield new DocumentationGenerateCommand();
-        yield new TestGenerateCommand();
+        yield new CodeReviewCommand($this->claudeClient);
+        yield new DocumentationGenerateCommand($this->claudeClient);
+        yield new TestGenerateCommand($this->claudeClient);
     }
 }

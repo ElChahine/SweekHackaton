@@ -21,6 +21,9 @@ use Walibuy\Sweeecli\Core\Prerequisites\PrerequisitesAwareCommandInterface;
 use Walibuy\Sweeecli\Core\Updater\Updater;
 use Walibuy\Sweeecli\Core\Updater\VersionChecker;
 
+use Symfony\Component\HttpClient\HttpClient;
+use Walibuy\Sweeecli\Core\Ai\ClaudeClient;
+
 abstract class AbstractKernel
 {
     private const CACHE_KEY_UPDATE_VERSION = 'update_version';
@@ -43,6 +46,10 @@ abstract class AbstractKernel
             new VersionChecker($gitlabClient),
             $gitlabClient
         );
+        $this->claudeClient = new ClaudeClient(
+            HttpClient::create(),
+            $_ENV['CLAUDE_API_KEY'] ?? getenv('CLAUDE_API_KEY') ?? ''
+);
     }
 
     abstract protected function getCommands(): iterable;
