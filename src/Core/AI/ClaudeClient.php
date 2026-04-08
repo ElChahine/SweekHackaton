@@ -13,14 +13,18 @@ class ClaudeClient
     public function __construct(
         private HttpClientInterface $httpClient,
         private string $apiKey,
-        private string $model = 'claude-3-5-sonnet-latest'
+        // On utilise l'ID de modèle exact pour éviter les erreurs d'alias
+        private string $model = 'claude-sonnet-4-6'
     ) {}
 
     public function call(string $systemPrompt, string $userPrompt): string
     {
+        // On nettoie la clé pour éviter les caractères invisibles de Cygwin (\r)
+        $cleanApiKey = trim($this->apiKey);
+
         $response = $this->httpClient->request('POST', self::API_URL, [
             'headers' => [
-                'x-api-key' => $this->apiKey,
+                'x-api-key' => $cleanApiKey,
                 'anthropic-version' => '2023-06-01',
                 'content-type' => 'application/json',
             ],
@@ -33,6 +37,12 @@ class ClaudeClient
                 ],
             ],
         ]);
+
+        
+        if ($response->getStatusCode() !== 200) {
+            $errorData = $response->getContent(false);
+            throw new \Exception("Détail de l'erreur Anthropic : " . $errorData);
+        }
 
         $data = $response->toArray();
         return $data['content'][0]['text'] ?? 'Erreur de réponse de l\'IA';
