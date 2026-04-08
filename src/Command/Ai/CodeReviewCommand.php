@@ -10,14 +10,13 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-// CET IMPORT ÉTAIT MANQUANT ET CAUSAIT L'ERREUR :
-use Symfony\Component\Process\Process; 
-use Walibuy\Sweeecli\Core\Ai\ClaudeClient;
+use Symfony\Component\Process\Process;
+use Walibuy\Sweeecli\Core\Ai\ReviewAnalyzer;
 
 class CodeReviewCommand extends Command
 {
     public function __construct(
-        private ClaudeClient $claudeClient
+        private ReviewAnalyzer $analyzer
     ) {
         parent::__construct();
     }
@@ -31,7 +30,6 @@ class CodeReviewCommand extends Command
             ->addArgument('base', InputArgument::OPTIONAL, 'La branche ou le commit de base', 'HEAD')
             // Argument pour spécifier la branche cible
             ->addArgument('target', InputArgument::OPTIONAL, 'La branche cible à comparer')
-            ->addOption('prompt', 'p', InputOption::VALUE_OPTIONAL, 'Prompt personnalisé pour la review')
             ->addOption('context', 'c', InputOption::VALUE_OPTIONAL, 'Contexte spécifique du projet')
         ;
     }
@@ -66,26 +64,13 @@ class CodeReviewCommand extends Command
             return Command::SUCCESS;
         }
 
-        // 3. Préparation du Prompt Système Expert
-        $customPrompt = $input->getOption('prompt') ?? "Fais une review complète et rigoureuse.";
-        $systemPrompt = "Tu es un Senior Developer expert en Symfony et Clean Code. 
-        Analyse ce diff et structure ton retour par : 
-        1. 🛡️ Sécurité
-        2. 🏎️ Performance
-        3. 🧹 Propreté (PSR)
-        4. 💡 Suggestions.
-        Sois précis et cite les lignes de code concernées. " . $customPrompt;
-        
+        // 3. Analyse via le service centralisé
         $context = $input->getOption('context') ?? "Application Symfony CLI.";
 
         $io->note("Analyse du diff (" . strlen($diff) . " caractères) par Claude...");
 
         try {
-            // 4. Appel à l'IA
-            $review = $this->claudeClient->call(
-                $systemPrompt, 
-                "Contexte : $context\n\nVoici le code à analyser :\n$diff"
-            );
+            $review = $this->analyzer->analyze($diff, $context);
 
             $io->section('Rapport de Review :');
             $io->writeln($review);

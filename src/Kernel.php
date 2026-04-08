@@ -33,6 +33,7 @@ use Walibuy\Sweeecli\Command\Ai\CodeReviewCommand;
 use Walibuy\Sweeecli\Command\Ai\DocumentationGenerateCommand;
 use Walibuy\Sweeecli\Command\Ai\TestGenerateCommand;
 use Walibuy\Sweeecli\Core\AbstractKernel;
+use Walibuy\Sweeecli\Core\Ai\ReviewAnalyzer;
 
 class Kernel extends AbstractKernel
 {
@@ -43,13 +44,15 @@ class Kernel extends AbstractKernel
 
     protected function getCommands(): iterable
     {
+        $analyzer = new ReviewAnalyzer($this->claudeClient);
+
         yield from $this->getCliCommands();
         yield new OpenDocCommand();
         yield from $this->getEnvCommands();
         yield from $this->getGitCommands();
         yield new RetrieveDatabaseDumpCommand();
         yield from $this->getReverseProxyCommands();
-        yield new CodeReviewCommand($this->claudeClient);
+        yield new CodeReviewCommand($analyzer);
         yield new DocumentationGenerateCommand($this->claudeClient);
         yield new TestGenerateCommand($this->claudeClient);
     }
@@ -96,7 +99,9 @@ class Kernel extends AbstractKernel
 
     private function getAiCommands(): iterable
     {
-        yield new CodeReviewCommand($this->claudeClient);
+        $analyzer = new ReviewAnalyzer($this->claudeClient);
+
+        yield new CodeReviewCommand($analyzer);
         yield new DocumentationGenerateCommand($this->claudeClient);
         yield new TestGenerateCommand($this->claudeClient);
     }
