@@ -12,7 +12,16 @@ class ReviewAnalyzer
 
     public function analyze(string $diff, string $context): string
     {
-        $systemPrompt = 'Tu es un Senior Developer expert en Symfony. Analyse ce diff et structure ton retour par : 1. Sécurité, 2. Performance, 3. Propreté, 4. Suggestions.';
+        // On définit le chemin vers le fichier de prompt
+        // __DIR__ . '/../../..' remonte de src/Core/Ai vers la racine du projet
+        $promptPath = __DIR__ . '/../../../config/prompts/review_expert.md';
+
+        if (!file_exists($promptPath)) {
+            throw new \Exception("Le fichier de prompt est introuvable à l'adresse : " . $promptPath);
+        }
+
+        // On lit le contenu du fichier
+        $systemPrompt = file_get_contents($promptPath);
 
         return $this->claudeClient->call(
             $systemPrompt,

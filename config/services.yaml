@@ -1,0 +1,6 @@
+```yaml
+services:
+    App\Core\Ai\ReviewAnalyzer:
+        arguments:
+            $systemPromptTemplate: '@=service("App\\Core\\Ai\\PromptLoader").load("review_system_prompt")'
+```

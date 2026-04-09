@@ -1,0 +1,179 @@
+{
+  "documentation": {
+    "classe": {
+      "nom": "DocumentationGenerateCommand",
+      "namespace": "Walibuy\\Sweeecli\\Command\\Ai",
+      "fichier": "DocumentationGenerateCommand.php",
+      "type": "Commande Symfony Console",
+      "heritage": "Symfony\\Component\\Console\\Command\\Command",
+      "description": "Commande CLI Symfony permettant de générer automatiquement la documentation technique et fonctionnelle d'un fichier PHP source en utilisant l'IA Claude. La documentation peut être générée au format Markdown ou JSON et est sauvegardée dans une arborescence miroir sous le répertoire 'docs/'."
+    },
+    "dependances": {
+      "internes": [
+        {
+          "classe": "Walibuy\\Sweeecli\\Core\\Ai\\ClaudeClient",
+          "role": "Client HTTP d'appel à l'API Claude (Anthropic), injecté par le constructeur"
+        }
+      ],
+      "externes": [
+        {
+          "package": "symfony/console",
+          "classes": [
+            "Command",
+            "InputInterface",
+            "OutputInterface",
+            "InputArgument",
+            "InputOption"
+          ]
+        }
+      ]
+    },
+    "commande": {
+      "nom": "ai:document",
+      "description": "Generate documentation",
+      "arguments": [
+        {
+          "nom": "file",
+          "type": "REQUIRED",
+          "description": "Chemin relatif ou absolu du fichier PHP à documenter"
+        }
+      ],
+      "options": [
+        {
+          "nom": "format",
+          "type": "VALUE_OPTIONAL",
+          "valeur_defaut": "markdown",
+          "valeurs_acceptees": ["markdown", "json"],
+          "description": "Format de sortie de la documentation générée"
+        }
+      ]
+    },
+    "constructeur": {
+      "signature": "__construct(private ClaudeClient $claudeClient)",
+      "description": "Initialise la commande via injection de dépendance du client Claude. Appelle le constructeur parent de Command.",
+      "parametres": [
+        {
+          "nom": "claudeClient",
+          "type": "ClaudeClient",
+          "description": "Instance du client permettant d'interagir avec l'API Claude"
+        }
+      ]
+    },
+    "methodes": [
+      {
+        "nom": "configure",
+        "visibilite": "protected",
+        "retour": "void",
+        "description": "Déclare le nom, la description, les arguments et les options de la commande Symfony Console."
+      },
+      {
+        "nom": "execute",
+        "visibilite": "protected",
+        "retour": "int",
+        "description": "Logique principale d'exécution de la commande.",
+        "parametres": [
+          {
+            "nom": "input",
+            "type": "InputInterface",
+            "description": "Interface d'accès aux arguments et options saisis par l'utilisateur"
+          },
+          {
+            "nom": "output",
+            "type": "OutputInterface",
+            "description": "Interface d'écriture des messages dans le terminal"
+          }
+        ],
+        "codes_retour": [
+          {
+            "code": "Command::SUCCESS",
+            "valeur": 0,
+            "description": "La documentation a été générée et sauvegardée avec succès"
+          },
+          {
+            "code": "Command::FAILURE",
+            "valeur": 1,
+            "description": "Le fichier source est introuvable ou une exception a été levée durant le traitement"
+          }
+        ],
+        "etapes": [
+          {
+            "ordre": 1,
+            "description": "Récupération de l'argument 'file' et de l'option 'format' (normalisée en minuscules)"
+          },
+          {
+            "ordre": 2,
+            "description": "Vérification de l'existence du fichier source via file_exists(). Retourne FAILURE si absent."
+          },
+          {
+            "ordre": 3,
+            "description": "Lecture du contenu du fichier source avec file_get_contents()"
+          },
+          {
+            "ordre": 4,
+            "description": "Construction du prompt système indiquant à Claude de répondre uniquement dans le format demandé (markdown ou json), sans texte d'encadrement"
+          },
+          {
+            "ordre": 5,
+            "description": "Construction du prompt utilisateur contenant le code source complet"
+          },
+          {
+            "ordre": 6,
+            "description": "Appel à ClaudeClient::call() avec les deux prompts pour obtenir la documentation générée"
+          },
+          {
+            "ordre": 7,
+            "description": "Nettoyage de la réponse : suppression des balises de code markdown (, , , ) et trim() de la chaîne"
+          },
+          {
+            "ordre": 8,
+            "description": "Calcul du chemin de destination : suppression du préfixe 'src/', conservation de l'arborescence des dossiers, préfixage par 'docs/'"
+          },
+          {
+            "ordre": 9,
+            "description": "Création récursive des répertoires cibles si inexistants (mkdir avec permissions 0777)"
+          },
+          {
+            "ordre": 10,
+            "description": "Détermination de l'extension du fichier de sortie : '.json' si format=json, '.md' sinon"
+          },
+          {
+            "ordre": 11,
+            "description": "Sauvegarde de la documentation dans le fichier final via file_put_contents()"
+          }
+        ]
+      }
+    ],
+    "gestion_erreurs": {
+      "fichier_absent": {
+        "type": "Erreur contrôlée",
+        "message": "Le fichier $filePath est introuvable !",
+        "sortie": "Command::FAILURE"
+      },
+      "exception_generique": {
+        "type": "try/catch \\Exception",
+        "message": "Erreur : {message de l'exception}",
+        "sortie": "Command::FAILURE"
+      }
+    },
+    "logique_arborescence": {
+      "description": "Miroir de l'arborescence source dans le répertoire docs/",
+      "exemple": {
+        "fichier_source": "src/Command/Ai/DocumentationGenerateCommand.php",
+        "apres_suppression_src": "Command/Ai/DocumentationGenerateCommand.php",
+        "dossier_cible": "{cwd}/docs/Command/Ai/",
+        "fichier_de_sortie_markdown": "{cwd}/docs/Command/Ai/DocumentationGenerateCommand.md",
+        "fichier_de_sortie_json": "{cwd}/docs/Command/Ai/DocumentationGenerateCommand.json"
+      }
+    },
+    "exemples_utilisation": [
+      {
+        "description": "Générer une documentation Markdown (format par défaut)",
+        "commande": "php bin/console ai:document src/Command/Ai/DocumentationGenerateCommand.php"
+      },
+      {
+        "description": "Générer une documentation au format JSON",
+        "commande": "php bin/console ai:document src/Command/Ai/DocumentationGenerateCommand.php --format=json"
+      }
+    ]
+  }
+}
