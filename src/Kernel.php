@@ -33,7 +33,9 @@ use Walibuy\Sweeecli\Command\Ai\CodeReviewCommand;
 use Walibuy\Sweeecli\Command\Ai\DocumentationGenerateCommand;
 use Walibuy\Sweeecli\Command\Ai\TestGenerateCommand;
 use Walibuy\Sweeecli\Core\AbstractKernel;
+use Walibuy\Sweeecli\Core\Ai\DocAnalyzer;
 use Walibuy\Sweeecli\Core\Ai\ReviewAnalyzer;
+use Walibuy\Sweeecli\Core\Ai\TestAnalyzer;
 
 class Kernel extends AbstractKernel
 {
@@ -44,7 +46,9 @@ class Kernel extends AbstractKernel
 
     protected function getCommands(): iterable
     {
-        $analyzer = new ReviewAnalyzer($this->claudeClient);
+        $reviewAnalyzer = new ReviewAnalyzer($this->claudeClient);
+        $testAnalyzer = new TestAnalyzer($this->claudeClient, dirname(__DIR__));
+        $docAnalyzer = new DocAnalyzer($this->claudeClient, dirname(__DIR__));
 
         yield from $this->getCliCommands();
         yield new OpenDocCommand();
@@ -52,9 +56,9 @@ class Kernel extends AbstractKernel
         yield from $this->getGitCommands();
         yield new RetrieveDatabaseDumpCommand();
         yield from $this->getReverseProxyCommands();
-        yield new CodeReviewCommand($analyzer);
-        yield new DocumentationGenerateCommand($this->claudeClient);
-        yield new TestGenerateCommand($this->claudeClient);
+        yield new CodeReviewCommand($reviewAnalyzer);
+        yield new DocumentationGenerateCommand($docAnalyzer);
+        yield new TestGenerateCommand($testAnalyzer);
     }
 
     private function getCliCommands(): iterable
@@ -99,10 +103,12 @@ class Kernel extends AbstractKernel
 
     private function getAiCommands(): iterable
     {
-        $analyzer = new ReviewAnalyzer($this->claudeClient);
+        $reviewAnalyzer = new ReviewAnalyzer($this->claudeClient);
+        $testAnalyzer = new TestAnalyzer($this->claudeClient, dirname(__DIR__));
+        $docAnalyzer = new DocAnalyzer($this->claudeClient, dirname(__DIR__));
 
-        yield new CodeReviewCommand($analyzer);
-        yield new DocumentationGenerateCommand($this->claudeClient);
-        yield new TestGenerateCommand($this->claudeClient);
+        yield new CodeReviewCommand($reviewAnalyzer);
+        yield new DocumentationGenerateCommand($docAnalyzer);
+        yield new TestGenerateCommand($testAnalyzer);
     }
 }

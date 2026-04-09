@@ -29,7 +29,7 @@
       ]
     },
     "commande": {
-      "nom": "ai:document",
+      "nom": "ai:doc",
       "description": "Generate documentation",
       "arguments": [
         {
@@ -168,11 +168,11 @@
     "exemples_utilisation": [
       {
         "description": "Générer une documentation Markdown (format par défaut)",
-        "commande": "php bin/console ai:document src/Command/Ai/DocumentationGenerateCommand.php"
+        "commande": "php bin/console ai:doc src/Command"
       },
       {
         "description": "Générer une documentation au format JSON",
-        "commande": "php bin/console ai:document src/Command/Ai/DocumentationGenerateCommand.php --format=json"
+        "commande": "php bin/php-linux index.php ai:doc src/Command --export"
       }
     ]
   }
