@@ -115,13 +115,18 @@ class CodeReviewCommand extends Command
                 if (!is_dir($folder)) {
                     mkdir($folder, 0777, true);
                 }
-
                 $filename = 'reports/AI_REVIEW.md';
                 file_put_contents($filename, $report);
                 $io->success("Le rapport a été exporté avec succès dans : $filename");
             }
 
-            $io->success('Review terminée avec succès.');
+            if (str_contains($report, 'REJECTED')) {
+                $io->error("🚨 ALERTE QUALITÉ : Le code a été REJETÉ par l'IA (Score < 80/100).");
+                $io->warning("Veuillez appliquer les correctifs suggérés avant de commiter.");
+                return Command::FAILURE;
+            }
+
+            $io->success('✅ Review terminée avec succès : Code approuvé.');
         } catch (\Exception $e) {
             $io->error("Erreur lors de l'appel IA : " . $e->getMessage());
             return Command::FAILURE;

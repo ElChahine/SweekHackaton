@@ -22,7 +22,8 @@ class DocumentationGenerateCommand extends Command
 
     protected function configure(): void
     {
-        $this->setDescription('Génère deux documentations (Tech & Fonctionnelle) pour un dossier')
+        $this->setName('ai:doc:generate')
+             ->setDescription('Génère deux documentations (Tech & Fonctionnelle) pour un dossier')
              ->addArgument('directory', InputArgument::REQUIRED, 'Dossier à documenter')
              ->addOption('context', 'c', InputOption::VALUE_OPTIONAL, 'Contexte spécifique');
     }
@@ -37,7 +38,9 @@ class DocumentationGenerateCommand extends Command
 
         try {
             $docsFolder = 'docs/generated/' . date('Ymd_His');
-            if (!is_dir($docsFolder)) mkdir($docsFolder, 0777, true);
+            if (!is_dir($docsFolder)) {
+                mkdir($docsFolder, 0777, true);
+            }
 
             // 1. Documentation Technique
             $io->section("Génération du volet Technique...");
