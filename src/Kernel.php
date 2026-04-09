@@ -32,10 +32,12 @@ use Walibuy\Sweeecli\Command\ReverseProxy\UpdateReverseProxyCommand;
 use Walibuy\Sweeecli\Command\Ai\CodeReviewCommand;
 use Walibuy\Sweeecli\Command\Ai\DocumentationGenerateCommand;
 use Walibuy\Sweeecli\Command\Ai\TestGenerateCommand;
-use Walibuy\Sweeecli\Core\AbstractKernel;
-use Walibuy\Sweeecli\Core\Ai\DocAnalyzer;
 use Walibuy\Sweeecli\Core\Ai\ReviewAnalyzer;
 use Walibuy\Sweeecli\Core\Ai\TestAnalyzer;
+use Walibuy\Sweeecli\Core\Ai\FixtureGenerator;
+use Walibuy\Sweeecli\Core\Ai\TestGenerator;
+use Walibuy\Sweeecli\Core\Ai\DocAnalyzer;
+use Walibuy\Sweeecli\Core\AbstractKernel;
 
 class Kernel extends AbstractKernel
 {
@@ -46,19 +48,13 @@ class Kernel extends AbstractKernel
 
     protected function getCommands(): iterable
     {
-        $reviewAnalyzer = new ReviewAnalyzer($this->claudeClient);
-        $testAnalyzer = new TestAnalyzer($this->claudeClient, dirname(__DIR__));
-        $docAnalyzer = new DocAnalyzer($this->claudeClient, dirname(__DIR__));
-
         yield from $this->getCliCommands();
         yield new OpenDocCommand();
         yield from $this->getEnvCommands();
         yield from $this->getGitCommands();
         yield new RetrieveDatabaseDumpCommand();
         yield from $this->getReverseProxyCommands();
-        yield new CodeReviewCommand($reviewAnalyzer);
-        yield new DocumentationGenerateCommand($docAnalyzer);
-        yield new TestGenerateCommand($testAnalyzer);
+        yield from $this->getAiCommands();
     }
 
     private function getCliCommands(): iterable
@@ -98,17 +94,19 @@ class Kernel extends AbstractKernel
         yield new StopReverseProxyCommand($this->projectManager);
         yield new UninstallReverseProxyCommand($this->projectManager);
         yield new UpdateReverseProxyCommand($this->projectManager);
-
     }
 
     private function getAiCommands(): iterable
     {
+        $projectDir = dirname(__DIR__);
         $reviewAnalyzer = new ReviewAnalyzer($this->claudeClient);
-        $testAnalyzer = new TestAnalyzer($this->claudeClient, dirname(__DIR__));
-        $docAnalyzer = new DocAnalyzer($this->claudeClient, dirname(__DIR__));
+        $testAnalyzer = new TestAnalyzer($this->claudeClient, $projectDir);
+        $fixtureGenerator = new FixtureGenerator($this->claudeClient, $projectDir);
+        $testGenerator = new TestGenerator($this->claudeClient, $projectDir);
+        $docAnalyzer = new DocAnalyzer($this->claudeClient, $projectDir);
 
         yield new CodeReviewCommand($reviewAnalyzer);
         yield new DocumentationGenerateCommand($docAnalyzer);
-        yield new TestGenerateCommand($testAnalyzer);
+        yield new TestGenerateCommand($testAnalyzer, $fixtureGenerator, $testGenerator);
     }
 }

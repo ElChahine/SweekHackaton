@@ -13,25 +13,21 @@ class DocAnalyzer
         private string $projectDir
     ) {}
 
-    public function analyze(string $directoryPath, string $context = ''): string
+    public function analyze(string $directoryPath, string $type = 'technical', string $context = ''): string
     {
-        $promptPath = $this->projectDir . '/config/prompts/doc_generator.md';
+        $promptFile = ($type === 'functional') ? 'doc_functional_expert.md' : 'doc_technical_expert.md';
+        $promptPath = $this->projectDir . '/config/prompts/' . $promptFile;
 
         if (!is_file($promptPath)) {
-            throw new \Exception("Le fichier de prompt est introuvable : $promptPath");
+            throw new \Exception("Prompt de documentation manquant : $promptPath");
         }
 
         $systemPrompt = file_get_contents($promptPath);
-        if (false === $systemPrompt) {
-            throw new \Exception("Impossible de lire le fichier de prompt : $promptPath");
-        }
-
         $codeContext = $this->aggregateDirectoryContent($directoryPath);
 
-        $userPrompt = "Voici le contenu du dossier a documenter :\n\n" . $codeContext;
-
+        $userPrompt = "DOC TYPE: $type\n\nCONTENU DU DOSSIER :\n" . $codeContext;
         if ('' !== $context) {
-            $userPrompt .= "\n\nContexte supplementaire de l'equipe : " . $context;
+            $userPrompt .= "\n\nCONTEXTE SUPPLÉMENTAIRE :\n" . $context;
         }
 
         return $this->claudeClient->call($systemPrompt, $userPrompt);
@@ -40,23 +36,11 @@ class DocAnalyzer
     private function aggregateDirectoryContent(string $path): string
     {
         $finder = new Finder();
-        $finder->files()
-            ->in($path)
-            ->name('*.php')
-            ->name('*.yaml')
-            ->name('*.xml')
-            ->name('*.json');
-
+        $finder->files()->in($path)->name(['*.php', '*.yaml', '*.xml', '*.json']);
         $content = '';
         foreach ($finder as $file) {
-            $content .= '=== File: ' . $file->getRelativePathname() . " ===\n";
-            $content .= $file->getContents() . "\n\n";
+            $content .= "=== File: " . $file->getRelativePathname() . " ===\n" . $file->getContents() . "\n\n";
         }
-
-        if ('' === $content) {
-            throw new \Exception("Aucun fichier source valide (PHP/YAML/XML/JSON) trouve dans : $path");
-        }
-
         return $content;
     }
 }

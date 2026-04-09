@@ -14,65 +14,48 @@ use Walibuy\Sweeecli\Core\Ai\DocAnalyzer;
 
 class DocumentationGenerateCommand extends Command
 {
-    public function __construct(
-        private DocAnalyzer $analyzer
-    ) {
+    protected static $defaultName = 'ai:doc:generate';
+
+    public function __construct(private DocAnalyzer $analyzer) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this
-            ->setName('ai:doc')
-            ->setDescription('Genere automatiquement une documentation (Readme, Architecture, Runbook) a partir d\'un dossier')
-            ->addArgument('directory', InputArgument::REQUIRED, 'Chemin vers le dossier a documenter (ex: src/Command)')
-            ->addOption('context', 'c', InputOption::VALUE_OPTIONAL, 'Contexte specifique pour guider l\'IA')
-            ->addOption('export', 'e', InputOption::VALUE_NONE, 'Exporter le resultat dans un fichier Markdown')
-        ;
+        $this->setDescription('Génère deux documentations (Tech & Fonctionnelle) pour un dossier')
+             ->addArgument('directory', InputArgument::REQUIRED, 'Dossier à documenter')
+             ->addOption('context', 'c', InputOption::VALUE_OPTIONAL, 'Contexte spécifique');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $directory = (string) $input->getArgument('directory');
-        $context = (string) ($input->getOption('context') ?? '');
+        $dir = (string) $input->getArgument('directory');
+        $ctx = (string) $input->getOption('context');
 
-        if (!is_dir($directory)) {
-            $io->error("Le dossier '$directory' est introuvable.");
-            return Command::FAILURE;
-        }
-
-        $io->title("Generation de la documentation IA : '$directory'");
-        $io->note('Agregation des fichiers et analyse IA en cours (cela peut prendre quelques secondes)...');
+        $io->title("Génération de la Double Documentation IA : $dir");
 
         try {
-            $progressBar = $io->createProgressBar();
-            $progressBar->start();
+            $docsFolder = 'docs/generated/' . date('Ymd_His');
+            if (!is_dir($docsFolder)) mkdir($docsFolder, 0777, true);
 
-            $report = $this->analyzer->analyze($directory, $context);
+            // 1. Documentation Technique
+            $io->section("Génération du volet Technique...");
+            $techDoc = $this->analyzer->analyze($dir, 'technical', $ctx);
+            file_put_contents("$docsFolder/README_TECH.md", $techDoc);
 
-            $progressBar->finish();
-            $io->newLine(2);
+            // 2. Documentation Fonctionnelle
+            $io->section("Génération du volet Fonctionnel...");
+            $funcDoc = $this->analyzer->analyze($dir, 'functional', $ctx);
+            file_put_contents("$docsFolder/README_FUNC.md", $funcDoc);
 
-            $io->section('Documentation generee :');
-            $io->writeln($report);
-
-            if ($input->getOption('export')) {
-                $docsFolder = 'docs/generated';
-                if (!is_dir($docsFolder)) {
-                    mkdir($docsFolder, 0777, true);
-                }
-
-                $safeDirName = str_replace(['/', '\\'], '_', rtrim($directory, '/'));
-                $filename = sprintf('%s/DOC_%s_%s.md', $docsFolder, strtoupper($safeDirName), date('Ymd_His'));
-
-                file_put_contents($filename, $report);
-                $io->success("La documentation a ete exportee avec succes dans : $filename");
-            } else {
-                $io->success('Generation terminee (utilisez --export pour sauvegarder le resultat).');
-            }
+            $io->success([
+                "Documentation générée avec succès dans $docsFolder",
+                "- README_TECH.md (Architecture, Mermaid, Classes)",
+                "- README_FUNC.md (Règles métier, Cas d'usage)"
+            ]);
         } catch (\Exception $e) {
-            $io->error('Erreur lors de l\'appel IA : ' . $e->getMessage());
+            $io->error($e->getMessage());
             return Command::FAILURE;
         }
 
