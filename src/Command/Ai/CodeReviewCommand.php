@@ -25,38 +25,20 @@ class CodeReviewCommand extends Command
     {
         $this
             ->setName('ai:review')
-            ->setDescription('Analyse le code et fournit un feedback détaillé via l\'IA')
-            // Argument pour comparer avec une branche (ex: main)
+            ->setDescription('Analyse le code via l\'IA avec export et progression')
             ->addArgument('base', InputArgument::OPTIONAL, 'La branche ou le commit de base', 'HEAD')
-            // Argument pour spécifier la branche cible
-            ->addArgument('target', InputArgument::OPTIONAL, 'La branche cible à comparer')
-            ->addOption('context', 'c', InputOption::VALUE_OPTIONAL, 'Contexte spécifique du projet')
-        ;
+            ->addOption('context', 'c', InputOption::VALUE_OPTIONAL, 'Contexte spécifique', 'Standard')
+            // AJOUT DE L'OPTION D'EXPORT
+            ->addOption('export', 'e', InputOption::VALUE_NONE, 'Exporter la review dans un fichier AI_REVIEW.md');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         
-        // 1. Construction dynamique de la commande git diff
-        $base = $input->getArgument('base');
-        $target = $input->getArgument('target');
-        $gitArgs = ['git', 'diff', $base];
-        if ($target) {
-            $gitArgs[] = $target;
-        }
-
-        $io->title("Préparation de la review IA : $base" . ($target ? " <-> $target" : " (local)"));
-
-        // 2. Exécution du process Git
-        $process = new Process($gitArgs);
+        // 1. Récupération du diff
+        $process = new Process(['git', 'diff', $input->getArgument('base')]);
         $process->run();
-
-        if (!$process->isSuccessful()) {
-            $io->error("Erreur Git : " . $process->getErrorOutput());
-            return Command::FAILURE;
-        }
-
         $diff = $process->getOutput();
 
         if (empty($diff)) {
@@ -64,16 +46,37 @@ class CodeReviewCommand extends Command
             return Command::SUCCESS;
         }
 
-        // 3. Analyse via le service centralisé
-        $context = $input->getOption('context') ?? "Application Symfony CLI.";
-
-        $io->note("Analyse du diff (" . strlen($diff) . " caractères) par Claude...");
+        $io->title("Audit de code par l'IA de sweeek");
 
         try {
-            $review = $this->analyzer->analyze($diff, $context);
+            // 2. MISE EN PLACE DE LA BARRE DE PROGRESSION
+            $io->note("Analyse du diff par Claude en cours...");
+            $progressBar = $io->createProgressBar();
+            $progressBar->start();
 
+            // Appel au service (le "cerveau")
+            $report = $this->analyzer->analyze($diff, $input->getOption('context'));
+
+            $progressBar->finish();
+            $io->newLine(2); // Pour sauter une ligne après la barre
+
+            // 3. AFFICHAGE DU RAPPORT DANS LA CONSOLE
             $io->section('Rapport de Review :');
-            $io->writeln($review);
+            $io->writeln($report);
+
+            // 4. LOGIQUE D'EXPORTATION
+            if ($input->getOption('export')) {
+                $folder = 'reports'; // Nom du dossier cible
+    
+                // Vérifie si le dossier existe, sinon le crée
+                if (!is_dir($folder)) {
+                    mkdir($folder, 0777, true);
+                }
+                $filename = 'reports/AI_REVIEW.md';
+                file_put_contents($filename, $report);
+                $io->success("Le rapport a été exporté avec succès dans : $filename");
+            }
+
             $io->success('Review terminée avec succès.');
 
         } catch (\Exception $e) {
