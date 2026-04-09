@@ -23,7 +23,8 @@
     },
     "require-dev": {
         "symfony/var-dumper": "^8.0",
-        "phpunit/phpunit": "^13.1"
+        "phpunit/phpunit": "^13.1",
+        "symfony/test-pack": "^1.2"
     },
     "config": {
         "platform": {
