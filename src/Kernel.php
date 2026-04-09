@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Walibuy\Sweeecli;
 
+
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Walibuy\Sweeecli\Command\Cli\CheckUpdateCommand;
 use Walibuy\Sweeecli\Command\Cli\InitConfigCommand;
