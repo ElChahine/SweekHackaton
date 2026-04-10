@@ -23,6 +23,7 @@ class ClaudeClient
         $cleanApiKey = trim($this->apiKey);
 
         $response = $this->httpClient->request('POST', self::API_URL, [
+            'timeout' => 180,
             'headers' => [
                 'x-api-key' => $cleanApiKey,
                 'anthropic-version' => '2023-06-01',
@@ -30,7 +31,7 @@ class ClaudeClient
             ],
             'json' => [
                 'model' => $this->model,
-                'max_tokens' => 4096,
+                'max_tokens' => 8192,
                 'system' => $systemPrompt,
                 'messages' => [
                     ['role' => 'user', 'content' => $userPrompt]
