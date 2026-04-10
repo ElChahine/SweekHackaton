@@ -26,7 +26,6 @@ class ProjectManager
             return $this->projects;
         }
 
-        // TODO: use dependency injection concept
         foreach ([new SwkProxy()] as $project) {
             if ($this->isInstalled($project)) {
                 $project->markAsInstalled();
