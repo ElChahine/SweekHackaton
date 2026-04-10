@@ -34,6 +34,7 @@ abstract class AbstractKernel
     protected CacheInterface $cache;
     protected ConfigurationManager $configurationManager;
     protected ProjectManager $projectManager;
+    protected ClaudeClient $claudeClient;
 
     public function __construct()
     {
@@ -47,7 +48,10 @@ abstract class AbstractKernel
             $gitlabClient
         );
         $this->claudeClient = new ClaudeClient(
-            HttpClient::create(),
+            HttpClient::create([
+                'timeout' => 300,
+                'max_duration' => 900,
+            ]),
             $_ENV['CLAUDE_API_KEY'] ?? getenv('CLAUDE_API_KEY') ?? ''
 );
     }
