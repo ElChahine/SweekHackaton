@@ -13,13 +13,11 @@ class ClaudeClient
     public function __construct(
         private HttpClientInterface $httpClient,
         private string $apiKey,
-        // On utilise l'ID de modèle exact pour éviter les erreurs d'alias
         private string $model = 'claude-sonnet-4-6'
     ) {}
 
     public function call(string $systemPrompt, string $userPrompt): string
     {
-        // On nettoie la clé pour éviter les caractères invisibles de Cygwin (\r)
         $cleanApiKey = trim($this->apiKey);
 
         $response = $this->httpClient->request('POST', self::API_URL, [

@@ -26,7 +26,6 @@ class DocumentationGenerateCommand extends Command
              ->setDescription('Génère deux documentations (Tech & Fonctionnelle) pour un dossier')
              ->addArgument('directory', InputArgument::REQUIRED, 'Dossier à documenter')
              ->addOption('context', 'c', InputOption::VALUE_OPTIONAL, 'Contexte spécifique')
-             // Ajout de l'option JSON
              ->addOption('json', 'j', InputOption::VALUE_NONE, 'Exporter également au format JSON');
     }
 
@@ -46,17 +45,14 @@ class DocumentationGenerateCommand extends Command
                 mkdir($docsFolder, 0777, true);
             }
 
-            // 1. Documentation Technique
             $io->section("Génération du volet Technique...");
             $techDoc = $this->analyzer->analyze($dir, 'technical', $ctx);
             file_put_contents("$docsFolder/README_TECH.md", $techDoc);
 
-            // 2. Documentation Fonctionnelle
             $io->section("Génération du volet Fonctionnel...");
             $funcDoc = $this->analyzer->analyze($dir, 'functional', $ctx);
             file_put_contents("$docsFolder/README_FUNC.md", $funcDoc);
 
-            // 3. Export JSON optionnel
             if ($exportJson) {
                 $io->section("Export JSON en cours...");
                 $jsonData = [
